@@ -62,6 +62,9 @@ class KesGraphState(TypedDict, total=False):
     task: str
     runtime: RuntimeState
     messages: Annotated[list[BaseMessage], add_messages]
+    session_id: str
+    session_turn: int
+    session_context: str
     plan_summary: str
     todos: list[TodoItem]
     acceptance_criteria: list[str]
@@ -84,4 +87,8 @@ class KesGraphState(TypedDict, total=False):
     compression_events: list[CompressionEvent]
     memory_snapshot: LayeredMemory
     history_summary: str
+    intent_route: str
+    intent_reason: str
+    intent_confidence: float
+    chat_response: str
     final_answer: str

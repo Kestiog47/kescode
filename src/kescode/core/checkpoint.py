@@ -414,6 +414,9 @@ def _inputs_from_checkpoint(
         "compression_events",
         "memory_snapshot",
         "history_summary",
+        "session_id",
+        "session_turn",
+        "session_context",
     ):
         if key in summary:
             inputs[key] = summary[key]

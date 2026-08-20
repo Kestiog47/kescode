@@ -55,6 +55,154 @@ MAX_LOOPS = 10
 VERIFICATION_TIMEOUT_SECONDS = 120.0
 DEFAULT_CONTEXT_TOKEN_LIMIT = 400000
 
+INTENT_ROUTER_PROMPT = """You are the intent router for KesCode.
+
+Classify the user's latest input into exactly one route:
+
+- chat: greetings, thanks, identity/help questions, ordinary conceptual Q&A,
+  or conversational messages that do not need workspace access.
+- workflow: any request that needs creating/editing/reading files, running commands,
+  installing packages, searching the web, checking the current project, verifying a
+  result, or producing a concrete deliverable.
+
+When session context is provided, use it only to understand whether the latest
+input is a continuation of prior coding work. A short follow-up like "继续",
+"修一下", or "运行测试" should be workflow if it refers to prior workspace work.
+
+Return only JSON with this shape:
+{"route":"chat"|"workflow","reason":"brief reason","confidence":0.0}
+
+If uncertain, choose workflow.
+"""
+
+CHAT_RESPONDER_PROMPT = """You are KesCode's lightweight chat node.
+
+Answer the user directly and concisely. Do not claim that you read files,
+searched the web, ran commands, edited files, or inspected the workspace.
+If the user asks for work requiring tools or project context, say that it
+should be handled by the workflow route.
+
+If session context is provided, you may use the recent conversation summary to
+answer conversational follow-ups, but do not invent workspace facts.
+"""
+
+
+def _session_context(state: KesGraphState, *, node: str) -> str:
+    """Format recent messages and layered memory for lightweight nodes."""
+
+    parts: list[str] = []
+    if state.get("session_context"):
+        parts.append(f"Session context:\n{state['session_context']}")
+    messages = list(state.get("messages") or [])
+    if messages:
+        parts.append(f"Recent messages:\n{_messages_text(messages[-6:])}")
+    for key in ("history_summary", "context_summary"):
+        value = state.get(key)
+        if value:
+            parts.append(f"{key}:\n{value}")
+    if state.get("runtime") is not None:
+        try:
+            memory = build_layered_memory(state, node=node)
+            parts.append(
+                "Layered memory:\n"
+                + format_layered_memory_for_prompt(memory)
+            )
+        except Exception:
+            pass
+    return "\n\n".join(parts) or "No session context."
+
+
+def intent_router_node(state: KesGraphState) -> dict[str, Any]:
+    """用 LLM 判断用户输入是聊天还是任务。
+
+    1. 用 LLM 判断意图：chat 还是 workflow
+    2. 输入：INTENT_ROUTER_PROMPT + 用户输入 + session 上下文
+    3. LLM 返回 JSON: {"route": "chat"|"workflow", "reason": "...", "confidence": 0.0-1.0}
+    4. 如果 confidence < 0.55 或返回值无效，默认 workflow
+    5. 返回 {intent_route, intent_reason, intent_confidence}
+    """
+
+    user_input = str(state.get("task") or "")
+    context = _session_context(state, node="intent_router")
+    messages = [
+        SystemMessage(content=INTENT_ROUTER_PROMPT),
+        HumanMessage(
+            content=(
+                f"User input:\n{user_input}\n\n"
+                f"Session context:\n{context}"
+            )
+        ),
+    ]
+
+    try:
+        response = create_model().invoke(messages)
+        data = _extract_json_object(
+            str(getattr(response, "content", "") or ""),
+            label="Intent router",
+        )
+        if not isinstance(data, dict):
+            raise KesCodeError("Intent router JSON must be an object.")
+
+        route = str(data.get("route") or "").strip().lower()
+        if route not in {"chat", "workflow"}:
+            route = "workflow"
+        try:
+            confidence = float(data.get("confidence", 0.0))
+        except (TypeError, ValueError):
+            confidence = 0.0
+        if confidence < 0.55:
+            route = "workflow"
+        reason = str(data.get("reason") or "").strip()
+        if not reason:
+            reason = f"LLM classified the input as {route} without a reason."
+    except Exception as exc:
+        route = "workflow"
+        reason = f"Intent routing failed; defaulting to workflow: {exc}"
+        confidence = 0.0
+
+    return {
+        "intent_route": route,
+        "intent_reason": reason,
+        "intent_confidence": confidence,
+    }
+
+
+def chat_responder_node(state: KesGraphState) -> dict[str, Any]:
+    """轻量聊天分支，不调用任何工具。
+
+    1. 用 LLM 直接回复
+    2. 输入：CHAT_RESPONDER_PROMPT + 用户输入 + session 上下文
+    3. 返回 {chat_response, final_answer}
+    """
+
+    user_input = str(state.get("task") or "")
+    context = _session_context(state, node="chat_responder")
+    messages = [
+        SystemMessage(content=CHAT_RESPONDER_PROMPT),
+        HumanMessage(
+            content=(
+                f"User input:\n{user_input}\n\n"
+                f"Session context:\n{context}"
+            )
+        ),
+    ]
+
+    try:
+        response = create_model().invoke(messages)
+        answer = str(getattr(response, "content", "") or "").strip()
+        if not answer:
+            answer = "I can help with that conversationally, but I need a concrete question first."
+    except Exception as exc:
+        answer = f"Sorry, I could not generate a chat response right now. {exc}"
+
+    return {"chat_response": answer, "final_answer": answer}
+
+
+def intent_route_fn(state: KesGraphState) -> str:
+    """Return the entry graph branch for the classified intent."""
+
+    return "chat_responder" if state.get("intent_route") == "chat" else "planner"
+
 
 class CallSearchAgentArgs(BaseModel):
     instruction: str = Field(
@@ -501,6 +649,8 @@ def final_node(state: KesGraphState) -> dict[str, Any]:
 
 def _planner_instruction(state: KesGraphState) -> str:
     parts = [f"Task:\n{state.get('task') or ''}"]
+    if state.get("session_context"):
+        parts.append(f"Session context:\n{state['session_context']}")
     if state.get("plan_summary") or state.get("todos"):
         parts.append(f"Current plan:\n{_plan_snapshot(state)}")
     if state.get("research_notes"):

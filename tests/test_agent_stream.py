@@ -174,3 +174,186 @@ def test_custom_event_needs_checkpoint() -> None:
     assert agent._custom_event_needs_checkpoint({"type": "handoff"}) is True
     assert agent._custom_event_needs_checkpoint({"type": "tool_result"}) is True
     assert agent._custom_event_needs_checkpoint({"type": "tool_call"}) is False
+
+
+def test_stream_session_events_chat_records_turns(monkeypatch, tmp_path) -> None:
+    class FakeEntry:
+        def stream(self, inputs, stream_mode=None):
+            yield (
+                "updates",
+                {
+                    "intent_router": {
+                        "intent_route": "chat",
+                        "intent_reason": "greeting",
+                        "intent_confidence": 0.9,
+                    }
+                },
+            )
+            yield (
+                "updates",
+                {
+                    "chat_responder": {
+                        "chat_response": "Hello!",
+                        "final_answer": "Hello!",
+                    }
+                },
+            )
+
+    monkeypatch.setattr(agent, "build_entry_workflow", lambda: FakeEntry())
+
+    events = list(
+        agent.stream_session_events(
+            "hi",
+            workspace=tmp_path,
+            checkpoint_mode="off",
+            trace_mode="off",
+        )
+    )
+
+    event_types = [event["type"] for event in events]
+    assert "intent_route" in event_types
+    assert "final_answer" in event_types
+    assert event_types.count("graph_event") == 2
+    assert event_types.count("session_event") == 5
+
+    session = json.loads(
+        (tmp_path / ".kescode" / "session" / "session.json").read_text(
+            encoding="utf-8"
+        )
+    )
+    assert session["turn_index"] == 1
+    assert [turn["role"] for turn in session["recent_turns"]] == [
+        "user",
+        "assistant",
+    ]
+    assert session["recent_turns"][1]["route"] == "chat"
+    assert session["recent_turns"][1]["content"] == "Hello!"
+
+
+def test_stream_session_events_workflow_uses_complex_graph(
+    monkeypatch,
+    tmp_path,
+) -> None:
+    captured: dict = {}
+
+    class FakeEntry:
+        def stream(self, inputs, stream_mode=None):
+            yield (
+                "updates",
+                {
+                    "intent_router": {
+                        "intent_route": "workflow",
+                        "intent_reason": "coding task",
+                        "intent_confidence": 0.8,
+                    }
+                },
+            )
+
+    class FakeComplex:
+        def stream(self, inputs, stream_mode=None):
+            captured["inputs"] = dict(inputs)
+            yield ("updates", {"planner": {"plan_summary": "plan"}})
+            yield ("updates", {"final": {"final_answer": "Task done"}})
+
+    monkeypatch.setattr(agent, "build_entry_workflow", lambda: FakeEntry())
+    monkeypatch.setattr(agent, "build_complex_workflow", lambda: FakeComplex())
+
+    events = list(
+        agent.stream_session_events(
+            "build it",
+            workspace=tmp_path,
+            checkpoint_mode="off",
+            trace_mode="off",
+        )
+    )
+
+    assert any(
+        event["type"] == "intent_route"
+        and event["route"] == "workflow"
+        for event in events
+    )
+    assert any(
+        event["type"] == "graph_event"
+        and "final" in event["event"]
+        for event in events
+    )
+    assert captured["inputs"]["session_id"]
+    assert captured["inputs"]["session_turn"] == 1
+    assert "Session ID" in captured["inputs"]["session_context"]
+    assert "build it" in captured["inputs"]["session_context"]
+
+    session = json.loads(
+        (tmp_path / ".kescode" / "session" / "session.json").read_text(
+            encoding="utf-8"
+        )
+    )
+    assert session["recent_turns"][1]["route"] == "workflow"
+    assert session["recent_turns"][1]["content"] == "Task done"
+
+
+def test_stream_session_events_reuses_session_across_turns(
+    monkeypatch,
+    tmp_path,
+) -> None:
+    class FakeEntry:
+        def stream(self, inputs, stream_mode=None):
+            yield (
+                "updates",
+                {
+                    "intent_router": {
+                        "intent_route": "chat",
+                        "intent_reason": "chat",
+                        "intent_confidence": 0.9,
+                    }
+                },
+            )
+            yield (
+                "updates",
+                {
+                    "chat_responder": {
+                        "chat_response": "Hello!",
+                        "final_answer": "Hello!",
+                    }
+                },
+            )
+
+    monkeypatch.setattr(agent, "build_entry_workflow", lambda: FakeEntry())
+
+    first_events = list(
+        agent.stream_session_events(
+            "hello",
+            workspace=tmp_path,
+            checkpoint_mode="off",
+            trace_mode="off",
+        )
+    )
+    second_events = list(
+        agent.stream_session_events(
+            "continue",
+            workspace=tmp_path,
+            checkpoint_mode="off",
+            trace_mode="off",
+        )
+    )
+
+    assert first_events[0]["event"]["type"] == "session_loaded"
+    assert second_events[0]["event"]["type"] == "session_loaded"
+    assert second_events[0]["event"]["session_id"] == first_events[0]["event"][
+        "session_id"
+    ]
+
+    session = json.loads(
+        (tmp_path / ".kescode" / "session" / "session.json").read_text(
+            encoding="utf-8"
+        )
+    )
+    assert session["turn_index"] == 2
+    assert len(session["recent_turns"]) == 4
+
+    context_event = next(
+        event
+        for event in second_events
+        if event["type"] == "session_event"
+        and event["event"]["type"] == "session_context"
+    )
+    assert "Hello!" in context_event["event"]["content"]
