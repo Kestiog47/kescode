@@ -1,0 +1,9 @@
+{% extends "base.html" %}
+{% block title %}403 - 无权限访问{% endblock %}
+{% block content %}
+<div class="error-page text-center py-5">
+    <h1 class="text-danger">403</h1>
+    <p class="lead">无权限访问该页面</p>
+    <a href="{{ url_for('main.index') }}" class="btn btn-primary">返回首页</a>
+</div>
+{% endblock %}

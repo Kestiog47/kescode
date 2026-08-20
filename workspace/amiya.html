@@ -1,0 +1,471 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="description" content="《明日方舟》核心角色阿米娅（Amiya）的角色介绍页：基本信息、身份与职责、种族设定、背景故事、能力与形态、配音演员与角色关系。">
+  <title>阿米娅 - 明日方舟角色介绍</title>
+
+  <!-- ============================================================
+       内嵌样式：罗德岛 / 明日方舟风格深色主题（深灰 + 黑金配色）
+       ============================================================ -->
+  <style>
+    /* ---------- 全局重置与主题变量 ---------- */
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+
+    :root {
+      --bg: #0a0e14;            /* 页面底色：深黑灰 */
+      --bg-deep: #070a0f;       /* 更深的底色 */
+      --card: #121923;          /* 卡片底色 */
+      --card-border: #243042;   /* 卡片描边 */
+      --gold: #c9a24b;          /* 主题金色 */
+      --gold-light: #e9cd86;    /* 亮金色 */
+      --gold-dim: rgba(201, 162, 75, 0.08);
+      --line: rgba(201, 162, 75, 0.18);
+      --text-main: #dbe1ea;     /* 主文本色 */
+      --text-dim: #93a0b3;      /* 次级文本色 */
+      --text-faint: #5d6778;    /* 弱化文本色 */
+      --link: #7fb2e8;          /* 链接色 */
+    }
+
+    html { scroll-behavior: smooth; }
+
+    body {
+      background-color: var(--bg);
+      color: var(--text-main);
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto,
+                   "PingFang SC", "Hiragino Sans GB", "Microsoft YaHei",
+                   "Noto Sans CJK SC", "Helvetica Neue", Arial, sans-serif;
+      line-height: 1.8;
+      -webkit-font-smoothing: antialiased;
+    }
+
+    a { color: var(--link); }
+    strong { color: var(--gold-light); font-weight: 600; }
+
+    /* 内容容器：最大宽度 + 自适应内边距 */
+    .container { max-width: 1080px; margin: 0 auto; padding: 0 22px; }
+
+    /* ---------- 头部 Banner 区 ---------- */
+    .hero {
+      position: relative;
+      min-height: 360px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      text-align: center;
+      padding: 90px 24px 70px;
+      overflow: hidden;
+      border-bottom: 1px solid var(--line);
+      background:
+        radial-gradient(ellipse at 18% 0%, rgba(201, 162, 75, 0.16), transparent 55%),
+        radial-gradient(ellipse at 82% 100%, rgba(150, 50, 70, 0.20), transparent 50%),
+        radial-gradient(ellipse at 55% 45%, rgba(35, 50, 70, 0.35), transparent 60%),
+        linear-gradient(180deg, #0d131d 0%, #0a0e14 100%);
+    }
+    /* Banner 装饰线 */
+    .hero::before {
+      content: "";
+      position: absolute;
+      top: 0; left: 50%;
+      transform: translateX(-50%);
+      width: 320px; height: 2px;
+      background: linear-gradient(90deg, transparent, var(--gold), transparent);
+    }
+    .hero::after {
+      content: "";
+      position: absolute;
+      bottom: 0; left: 50%;
+      transform: translateX(-50%);
+      width: 520px; height: 1px;
+      background: linear-gradient(90deg, transparent, var(--gold), transparent);
+    }
+    .hero-kicker {
+      font-size: 0.82rem;
+      letter-spacing: 0.42em;
+      text-transform: uppercase;
+      color: var(--gold);
+      margin-bottom: 14px;
+      text-shadow: 0 0 18px rgba(201, 162, 75, 0.35);
+    }
+    .hero-title {
+      font-size: clamp(2.6rem, 7vw, 4.2rem);
+      font-weight: 700;
+      letter-spacing: 0.28em;
+      background: linear-gradient(180deg, #f2e2b0 0%, var(--gold) 55%, #8f6f2e 100%);
+      -webkit-background-clip: text;
+      background-clip: text;
+      -webkit-text-fill-color: transparent;
+      color: transparent;
+      text-shadow: 0 6px 30px rgba(201, 162, 75, 0.22);
+    }
+    .hero-sub {
+      margin-top: 10px;
+      color: var(--text-dim);
+      font-size: 1.02rem;
+      letter-spacing: 0.16em;
+    }
+    .hero-tags { margin-top: 22px; }
+
+    /* ---------- 徽章 / 标签 ---------- */
+    .badge {
+      display: inline-block;
+      padding: 3px 14px;
+      margin: 4px 6px 4px 0;
+      border: 1px solid rgba(201, 162, 75, 0.55);
+      border-radius: 999px;
+      font-size: 0.82rem;
+      letter-spacing: 0.06em;
+      color: var(--gold-light);
+      background: var(--gold-dim);
+    }
+
+    .hero-quote {
+      margin-top: 24px;
+      color: var(--text-dim);
+      font-size: 0.98rem;
+      font-style: italic;
+    }
+
+    /* ---------- 卡片式内容分区 ---------- */
+    .section {
+      background:
+        linear-gradient(180deg, rgba(201, 162, 75, 0.045), transparent 38%),
+        var(--card);
+      border: 1px solid var(--card-border);
+      border-radius: 12px;
+      padding: 30px 34px;
+      margin: 36px 0;
+      box-shadow: 0 10px 30px rgba(0, 0, 0, 0.35);
+    }
+    .section h2 {
+      font-size: 1.45rem;
+      color: var(--gold);
+      letter-spacing: 0.10em;
+      padding-bottom: 12px;
+      border-bottom: 1px solid var(--line);
+      margin-bottom: 18px;
+    }
+    .section h3 {
+      font-size: 1.1rem;
+      color: var(--gold-light);
+      margin: 24px 0 10px;
+      letter-spacing: 0.05em;
+    }
+    .section p { margin-bottom: 12px; }
+    .section ul { padding-left: 1.4em; margin-bottom: 12px; }
+    .section li { margin-bottom: 6px; }
+
+    /* ---------- 信息表格 ---------- */
+    .info-table {
+      width: 100%;
+      border-collapse: collapse;
+      border: 1px solid var(--card-border);
+      border-radius: 8px;
+      overflow: hidden;
+      font-size: 0.95rem;
+    }
+    .info-table th,
+    .info-table td {
+      padding: 11px 16px;
+      border-bottom: 1px solid rgba(36, 48, 66, 0.75);
+      vertical-align: top;
+      text-align: left;
+    }
+    .info-table tr:last-child th,
+    .info-table tr:last-child td { border-bottom: none; }
+    .info-table th {
+      width: 132px;
+      white-space: nowrap;
+      color: var(--gold);
+      background: var(--gold-dim);
+      letter-spacing: 0.05em;
+    }
+    .info-table td { background: rgba(10, 14, 20, 0.42); }
+    .info-table tr:hover td { background: rgba(201, 162, 75, 0.055); }
+
+    /* ---------- 角色关系卡片 ---------- */
+    .rel-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(210px, 1fr));
+      gap: 16px;
+    }
+    .rel-card {
+      background: rgba(10, 14, 20, 0.55);
+      border: 1px solid var(--card-border);
+      border-radius: 10px;
+      padding: 16px 18px;
+      transition: transform 0.2s ease, border-color 0.2s ease;
+    }
+    .rel-card:hover {
+      transform: translateY(-4px);
+      border-color: rgba(201, 162, 75, 0.6);
+    }
+    .rel-card .rel-name {
+      color: var(--gold-light);
+      font-weight: 600;
+      margin-bottom: 6px;
+      letter-spacing: 0.04em;
+    }
+    .rel-card .rel-desc { font-size: 0.88rem; color: var(--text-dim); }
+
+    /* ---------- 参考资料列表 ---------- */
+    .ref-list { list-style: none; padding-left: 0 !important; }
+    .ref-list li {
+      padding: 11px 0;
+      border-bottom: 1px dashed rgba(36, 48, 66, 0.85);
+    }
+    .ref-list li:last-child { border-bottom: none; }
+    .ref-list .ref-name { color: var(--text-dim); font-size: 0.85rem; }
+    .ref-list a {
+      text-decoration: none;
+      word-break: break-all;
+      transition: color 0.15s ease;
+    }
+    .ref-list a:hover { color: var(--gold-light); text-decoration: underline; }
+
+    /* ---------- 页脚 ---------- */
+    footer {
+      text-align: center;
+      padding: 32px 20px 40px;
+      color: var(--text-faint);
+      font-size: 0.84rem;
+      border-top: 1px solid var(--line);
+    }
+    footer .rhodes { letter-spacing: 0.35em; color: var(--gold-dim); margin-bottom: 6px; }
+
+    /* ---------- 响应式适配 ---------- */
+    @media (max-width: 720px) {
+      .hero { min-height: 300px; padding: 60px 18px 46px; }
+      .section { padding: 22px 18px; margin: 26px 0; }
+      .info-table th { width: 96px; padding: 10px 10px; }
+      .info-table td { padding: 10px 12px; }
+      .rel-grid { grid-template-columns: 1fr; }
+    }
+  </style>
+</head>
+
+<body>
+
+  <!-- ============================================================
+       头部 Banner 区
+       ============================================================ -->
+  <header class="hero">
+    <div class="hero-inner">
+      <div class="hero-kicker">Rhodes Island // 罗德岛干员档案</div>
+      <h1 class="hero-title">阿米娅</h1>
+      <div class="hero-sub">Amiya · アーミヤ · 아미야</div>
+      <div class="hero-tags">
+        <span class="badge">干员编号 R001</span>
+        <span class="badge">卡特斯 / 奇美拉</span>
+        <span class="badge">罗德岛公开领袖</span>
+        <span class="badge">萨卡兹「魔王」</span>
+      </div>
+      <p class="hero-quote">「加油，博士。」—— 让我们一同守护罗德岛与这片大地的明日。</p>
+    </div>
+  </header>
+
+  <!-- ============================================================
+       主内容区
+       ============================================================ -->
+  <main class="container">
+
+    <!-- ===== 角色概述 ===== -->
+    <section class="section" id="overview">
+      <h2>角色概述</h2>
+      <p>
+        阿米娅是鹰角网络《明日方舟》的<strong>核心角色</strong>，罗德岛的公开领袖与最高执行权拥有者，
+        也是泰拉大陆上极少数同时拥有<strong>「卡特斯/奇美拉」</strong>种族特质与萨卡兹
+        <strong>「魔王」</strong>身份的少女。
+      </p>
+      <p>
+        作为贯穿主线剧情的看板娘与战术指挥官，她以温柔而坚定的意志，带领罗德岛在矿石病肆虐、
+        天灾频仍的泰拉大陆上奔走，为感染者争取生存的尊严，也为弥合种族间的仇恨而不懈努力。
+      </p>
+    </section>
+
+    <!-- ===== 基本信息 ===== -->
+    <section class="section" id="profile">
+      <h2>基本信息</h2>
+      <table class="info-table">
+        <tbody>
+          <tr><th>代号</th><td>阿米娅（Amiya / アーミヤ / 아미야）</td></tr>
+          <tr><th>干员编号</th><td>R001</td></tr>
+          <tr><th>性别</th><td>女</td></tr>
+          <tr><th>发色 / 瞳色</th><td>棕发 / 蓝瞳</td></tr>
+          <tr><th>身高</th><td>142cm（升变后 150cm）</td></tr>
+          <tr><th>生日</th><td>12月23日</td></tr>
+          <tr><th>种族</th><td>卡特斯 / 奇美拉（Cautus / Chimera）</td></tr>
+          <tr><th>职业</th><td>术师 / 近卫 / 医疗（可通过专属功能「升变」切换）</td></tr>
+          <tr><th>出身地区</th><td>雷姆必拓（Rim Billiton）</td></tr>
+          <tr><th>所属团体</th><td>罗德岛（Rhodes Island）</td></tr>
+          <tr><th>年龄</th><td>约 14 岁</td></tr>
+          <tr><th>矿石病</th><td>感染者 —— 体表有源石结晶分布，体细胞与源石融合率 19%</td></tr>
+          <tr><th>画师</th><td>唯@W</td></tr>
+        </tbody>
+      </table>
+    </section>
+
+    <!-- ===== 身份与职责 ===== -->
+    <section class="section" id="identity">
+      <h2>身份与职责</h2>
+      <ul>
+        <li><strong>罗德岛公开领袖</strong>：作为罗德岛的公开领导人与最高执行权拥有者，阿米娅在诸多公开场合代表罗德岛发声，是组织面向泰拉世界的「门面」与精神旗帜。</li>
+        <li><strong>萨卡兹新一任「魔王」</strong>：前代魔王特蕾西娅在临终前，将「文明的存续」（黑王冠）托付给她，使其成为萨卡兹历史上罕见的外族「魔王」继承者。</li>
+        <li><strong>感染者的守护者</strong>：她带领罗德岛为治愈矿石病、弥合感染者与普通人之间的仇恨而奋斗，始终坚持「为感染者争取更好明天」的信念。</li>
+      </ul>
+    </section>
+
+    <!-- ===== 种族设定 ===== -->
+    <section class="section" id="race">
+      <h2>种族设定</h2>
+      <p>
+        阿米娅的种族登记为<strong>卡特斯 / 奇美拉（Chimera）</strong>。她的外形具有卡特斯（兔）的典型特征，
+        却同时拥有萨卡兹王族的源石技艺能力，是《明日方舟》游戏中<strong>唯一被确认的真正奇美拉</strong>。
+      </p>
+      <p>
+        在泰拉的设定中，不同种族的特征通常不会同时出现在同一个体身上；而奇美拉作为一种特殊的「混合种族」，
+        或由血脉混合、或经由危险的改造手段产生。阿米娅正是这一罕见存在的最典型代表。
+      </p>
+    </section>
+
+    <!-- ===== 背景故事 ===== -->
+    <section class="section" id="story">
+      <h2>背景故事</h2>
+
+      <h3>早年：雷姆必拓的悲剧</h3>
+      <p>
+        阿米娅出生于雷姆必拓。幼年时，她在一场驮兽事故中失去了双亲，自己也不幸被源石感染，
+        从此成为一名感染者。在命运的转折点上，博士（「预言家」）在雷姆必拓救下了她，并带着年幼的阿米娅一同旅行。
+      </p>
+
+      <h3>巴别塔：新的家园</h3>
+      <p>
+        1091 年秋，博士将她带回巴别塔本舰。特蕾西娅亲自迎接了她，阿米娅从此在巴别塔找到了新的「家」。
+        特蕾西娅的温柔、凯尔希的关照与博士的陪伴，让她逐渐治愈了内心的创伤，也塑造了她温柔而坚定的性格。
+      </p>
+
+      <h3>魔王：文明的存续</h3>
+      <p>
+        特蕾西娅在临终前，将黑王冠「文明的存续」与萨卡兹的未来一并托付给阿米娅，使她成为萨卡兹新一任「魔王」。
+        这份沉重的传承，既是力量，也是背负了万千萨卡兹血脉与记忆的责任。
+      </p>
+
+      <h3>罗德岛：迈向明日</h3>
+      <p>
+        博士失忆苏醒后，阿米娅作为罗德岛的核心领导，在泰拉大陆各方势力之间斡旋周旋。
+        她性格温柔坚定，拥有感知他人情绪的能力，在一次次战斗中逐渐掌握魔王之力——
+        纵使背负着沉重的过去，她依然向着特蕾西娅所期望的未来坚定前进。
+      </p>
+    </section>
+
+    <!-- ===== 能力与形态 ===== -->
+    <section class="section" id="powers">
+      <h2>能力与形态</h2>
+      <p>
+        阿米娅的源石技艺适应性极高，是罗德岛少有的多职业干员。她可通过专属功能
+        <strong>「升变」</strong>在术师、近卫与医疗三种职业形态之间自由切换，且各形态共享经验、
+        精英化与信赖值进度。
+      </p>
+
+      <h3>术师形态</h3>
+      <p>初始职业为术师，攻击造成法术伤害，是可靠的远程法术输出核心。</p>
+
+      <h3>升变 · 近卫「术战者」</h3>
+      <p>
+        近卫形态下阿米娅持剑「赤霄」作战，化身近战法术战士，代表性技能包括
+        <strong>影霄·奔夜</strong>（攻击强化并转为二连击，获得法术闪避）与
+        <strong>影霄·绝影</strong>（锁定前方生命值最低的目标进行连续法术斩击）。
+      </p>
+
+      <h3>升变 · 医疗「咒愈师」</h3>
+      <p>
+        医疗形态下阿米娅以「咒愈」为队友提供治疗支援，攻击造成伤害的同时为范围内的友方干员治疗，
+        兼顾输出与续航。
+      </p>
+    </section>
+
+    <!-- ===== 配音演员 ===== -->
+    <section class="section" id="voice">
+      <h2>配音演员</h2>
+      <table class="info-table">
+        <tbody>
+          <tr><th>日语</th><td>黑泽朋世（Tomoyo Kurosawa）</td></tr>
+          <tr><th>中文</th><td>陶典</td></tr>
+          <tr><th>英语</th><td>Emma Ballantine</td></tr>
+          <tr><th>韩语</th><td>李智贤（Lee Ji-hyun）</td></tr>
+        </tbody>
+      </table>
+    </section>
+
+    <!-- ===== 角色关系 ===== -->
+    <section class="section" id="relations">
+      <h2>角色关系</h2>
+      <div class="rel-grid">
+        <div class="rel-card">
+          <div class="rel-name">博士</div>
+          <div class="rel-desc">最信任、最重要的同伴与精神支柱。从巴别塔到罗德岛，两人拥有牢不可破的羁绊，阿米娅在任何危机中都坚信博士的指挥。</div>
+        </div>
+        <div class="rel-card">
+          <div class="rel-name">凯尔希</div>
+          <div class="rel-desc">监护人与导师。罗德岛医疗部门总负责人，自巴别塔时代起陪伴阿米娅成长，引导她控制魔王的力量，是阿米娅最稳固的后援。</div>
+        </div>
+        <div class="rel-card">
+          <div class="rel-name">特蕾西娅</div>
+          <div class="rel-desc">引路人与力量授予者。前卡兹戴尔魔王，在生命最后一刻将黑王冠「文明的存续」与萨卡兹的未来托付给阿米娅。</div>
+        </div>
+        <div class="rel-card">
+          <div class="rel-name">暴行</div>
+          <div class="rel-desc">同族（卡特斯）的姐姐般存在。巴别塔时期便悉心照料阿米娅，因牵挂她而加入罗德岛，两人情谊深厚。</div>
+        </div>
+        <div class="rel-card">
+          <div class="rel-name">煌</div>
+          <div class="rel-desc">挚友。罗德岛精英干员，常亲昵地称阿米娅为「小兔子」，两人在关键抉择中相互鼓励与支持。</div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ===== 参考资料 ===== -->
+    <section class="section" id="references">
+      <h2>参考资料</h2>
+      <p style="margin-bottom:8px;">以下资料为本页面内容的事实依据与延伸阅读：</p>
+      <ul class="ref-list">
+        <li>
+          <span class="ref-name">明日方舟中文 Wiki（PRTS）· 阿米娅：</span>
+          <a href="https://prts.wiki/w/%E9%98%BF%E7%B1%B3%E5%A8%85" target="_blank" rel="noopener noreferrer">
+            https://prts.wiki/w/阿米娅
+          </a>
+        </li>
+        <li>
+          <span class="ref-name">萌娘百科 · 阿米娅：</span>
+          <a href="https://zh.moegirl.org.cn/%E9%98%BF%E7%B1%B3%E5%A8%85" target="_blank" rel="noopener noreferrer">
+            https://zh.moegirl.org.cn/阿米娅
+          </a>
+        </li>
+        <li>
+          <span class="ref-name">明日方舟官方网站：</span>
+          <a href="https://ak.hypergryph.com" target="_blank" rel="noopener noreferrer">
+            https://ak.hypergryph.com
+          </a>
+        </li>
+        <li>
+          <span class="ref-name">百度百科 · 阿米娅：</span>
+          <a href="https://baike.baidu.com/item/%E9%98%BF%E7%B1%B3%E5%A8%85/23576295" target="_blank" rel="noopener noreferrer">
+            https://baike.baidu.com/item/阿米娅/23576295
+          </a>
+        </li>
+      </ul>
+    </section>
+
+  </main>
+
+  <!-- ============================================================
+       页脚
+       ============================================================ -->
+  <footer>
+    <div class="rhodes">RHODES ISLAND</div>
+    <p>本页面为《明日方舟》角色「阿米娅」的粉丝向介绍页，仅供学习与交流使用；游戏版权归上海鹰角网络科技有限公司所有。</p>
+  </footer>
+
+</body>
+</html>

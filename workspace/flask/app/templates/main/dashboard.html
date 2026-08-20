@@ -1,0 +1,50 @@
+{% extends "base.html" %}
+{% block title %}仪表盘 - 后台管理系统{% endblock %}
+{% block content %}
+<h1 class="mb-4">仪表盘</h1>
+<div class="row g-4 mb-4">
+    <div class="col-md-6">
+        <div class="card shadow h-100">
+            <div class="card-body">
+                <h5 class="card-title">用户信息</h5>
+                <p class="mb-1">用户名：<strong>{{ current_user.username }}</strong></p>
+                <p class="mb-1">邮箱：{{ current_user.email }}</p>
+                <p class="mb-0">
+                    角色：
+                    {% if current_user.has_role('admin') %}
+                        <span class="badge bg-primary">管理员</span>
+                    {% else %}
+                        <span class="badge bg-secondary">普通用户</span>
+                    {% endif %}
+                </p>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-6">
+        <div class="card shadow h-100">
+            <div class="card-body">
+                <h5 class="card-title">统计</h5>
+                <p class="mb-0">发帖总数：
+                    <span class="badge bg-info text-dark fs-6">{{ post_count }}</span>
+                </p>
+            </div>
+        </div>
+    </div>
+</div>
+<h3 class="mb-3">最近帖子</h3>
+{% if recent_posts %}
+    <ul class="list-group mb-4">
+        {% for p in recent_posts %}
+            <li class="list-group-item d-flex justify-content-between align-items-center">
+                <div>
+                    <strong>{{ p.title }}</strong>
+                    <small class="text-muted ms-2">by {{ p.author.username if p.author else '未知' }}</small>
+                </div>
+                <small class="text-muted">{{ p.created_at.strftime('%Y-%m-%d %H:%M') }}</small>
+            </li>
+        {% endfor %}
+    </ul>
+{% else %}
+    <div class="alert alert-info">暂无帖子，可通过 <code>POST /api/posts</code> 创建。</div>
+{% endif %}
+{% endblock %}
