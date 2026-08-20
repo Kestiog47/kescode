@@ -10,5 +10,8 @@ wheels/
 # Virtual environments
 .venv
 
+# Runtime session data
+.kescode/session/
+
 # Environment files
 .env

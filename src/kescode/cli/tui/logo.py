@@ -9,10 +9,7 @@ from rich.console import Console
 from rich.live import Live
 from rich.text import Text
 
-LOGO_ART = """ 🐾 KesCode
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
- Stage 6 · MultiAgent + Context/Harness
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"""
+LOGO_ART = " 🐾 KesCode"
 
 _PALETTE = (
     "bold cyan",
@@ -20,20 +17,12 @@ _PALETTE = (
     "bold yellow",
     "bold green",
 )
-_RULE_STYLE = "bold bright_black"
-_TAGLINE_STYLE = "dim italic"
-
-
 def build_logo(step: int = 0) -> Text:
     """Return the KesCode logo as a colored rich Text."""
 
-    lines = LOGO_ART.splitlines()
     title_style = _PALETTE[step % len(_PALETTE)]
     text = Text()
-    text.append(f"{lines[0]}\n", style=title_style)
-    text.append(f"{lines[1]}\n", style=_RULE_STYLE)
-    text.append(f"{lines[2]}\n", style=_TAGLINE_STYLE)
-    text.append(lines[3], style=_RULE_STYLE)
+    text.append(LOGO_ART, style=title_style)
     return text
 
 

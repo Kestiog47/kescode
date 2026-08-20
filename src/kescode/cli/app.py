@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import json
 import os
+import sys
 from pathlib import Path
 from typing import Annotated, Literal
 
@@ -14,12 +15,72 @@ from rich.panel import Panel
 from rich.syntax import Syntax
 from rich.text import Text
 
+from kescode.cli.tui.app import KesCodeTuiApp
 from kescode.core.agent import NODE_TITLES, stream_agent_events
 from kescode.core.paths import ensure_workspace
 
 DEFAULT_MAX_ATTEMPTS = 3
 console = Console()
 app = typer.Typer()
+tui_app = typer.Typer()
+
+
+@tui_app.command()
+def tui(
+    workspace: Annotated[
+        Path | None,
+        typer.Option(
+            "--workspace",
+            "-w",
+            help="Workspace directory; defaults to the current directory.",
+        ),
+    ] = None,
+    session_workspace: Annotated[
+        Path | None,
+        typer.Option(
+            "--session-workspace",
+            help="Directory that stores session files; defaults to workspace.",
+        ),
+    ] = None,
+    model: Annotated[
+        str | None,
+        typer.Option(
+            "--model",
+            help="Model name. Defaults to MODEL env or the configured default.",
+        ),
+    ] = None,
+    max_attempts: Annotated[
+        int,
+        typer.Option(
+            "--max-attempts",
+            min=1,
+            help="Maximum planner/verifier attempts per workflow turn.",
+        ),
+    ] = DEFAULT_MAX_ATTEMPTS,
+    approval_mode: Annotated[
+        Literal["inline", "auto", "deny"],
+        typer.Option("--approval-mode", help="Command approval policy."),
+    ] = "inline",
+    checkpoint_mode: Annotated[
+        Literal["light", "strict", "off"],
+        typer.Option("--checkpoint-mode", help="Checkpoint persistence policy."),
+    ] = "light",
+    trace_mode: Annotated[
+        Literal["on", "off"],
+        typer.Option("--trace-mode", help="Execution tracing policy."),
+    ] = "on",
+) -> None:
+    """Launch the interactive Textual TUI."""
+
+    KesCodeTuiApp(
+        workspace or Path.cwd(),
+        session_workspace=session_workspace,
+        max_attempts=max_attempts,
+        approval_mode=approval_mode,
+        checkpoint_mode=checkpoint_mode,
+        trace_mode=trace_mode,
+        model=model,
+    ).run()
 
 
 @app.command()
@@ -223,4 +284,15 @@ def _print_panel(
 def main() -> None:
     """Console entry point."""
 
+    args = sys.argv[1:]
+    if args and args[0] == "tui":
+        tui_app(args[1:])
+        return
+    if not args or (
+        args[0].startswith("-")
+        and args[0] not in {"--help", "-h"}
+        and "--resume" not in args
+    ):
+        tui_app(args)
+        return
     app()

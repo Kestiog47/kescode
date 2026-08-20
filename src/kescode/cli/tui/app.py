@@ -9,7 +9,6 @@ from pathlib import Path
 from typing import Any
 
 from textual.app import App, ComposeResult
-from textual.containers import Horizontal
 from textual.message import Message
 from textual.widgets import Footer, Header, Input, RichLog, Static
 
@@ -36,14 +35,6 @@ _TOOL_LABELS = {
     "todo_write": "Plan",
     "web_search": "WebSearchTool",
 }
-
-_STATUS_ICONS = {
-    "blocked": "⛔",
-    "completed": "✅",
-    "in_progress": "🔄",
-    "pending": "⬜",
-}
-
 
 class AgentEventMessage(Message):
     """Carry one streamed agent event from the worker thread to the UI."""
@@ -76,22 +67,10 @@ class KesCodeTuiApp(App[None]):
         content-align: left middle;
     }
     #logo {
-        height: 5;
+        height: 3;
         background: $surface;
         padding: 0 2;
         content-align: center middle;
-    }
-    #main {
-        height: 1fr;
-        layout: horizontal;
-    }
-    #plan-panel {
-        width: 34%;
-        min-width: 30;
-        height: 1fr;
-        border: round $primary;
-        padding: 1;
-        overflow-y: auto;
     }
     #event-log {
         width: 1fr;
@@ -101,7 +80,7 @@ class KesCodeTuiApp(App[None]):
     }
     #prompt {
         height: 3;
-        dock: bottom;
+        margin: 0 1;
     }
     """
 
@@ -131,7 +110,9 @@ class KesCodeTuiApp(App[None]):
             os.environ["MODEL"] = model
 
         self._session_id = ""
-        self._running = False
+        self._turn_running = False
+        self._last_reply_content = ""
+        self._seen_event_keys: set[str] = set()
         self._thread: threading.Thread | None = None
         self._logo_step = 0
         self._logo_frames_left = 8
@@ -141,14 +122,12 @@ class KesCodeTuiApp(App[None]):
         yield Header(show_clock=True)
         yield Static("", id="session-status")
         yield Static(build_logo(), id="logo")
-        with Horizontal(id="main"):
-            yield Static("", id="plan-panel")
-            yield RichLog(
-                highlight=True,
-                markup=False,
-                wrap=True,
-                id="event-log",
-            )
+        yield RichLog(
+            highlight=True,
+            markup=False,
+            wrap=True,
+            id="event-log",
+        )
         yield Input(placeholder="💬 Input: ...", id="prompt")
         yield Footer()
 
@@ -159,6 +138,7 @@ class KesCodeTuiApp(App[None]):
         except Exception:
             pass
         self._update_status("Ready")
+        self.query_one("#prompt", Input).focus()
         self._logo_timer = self.set_interval(0.3, self._animate_logo)
 
     def on_input_submitted(self, event: Input.Submitted) -> None:
@@ -166,11 +146,13 @@ class KesCodeTuiApp(App[None]):
         event.input.value = ""
         if not task:
             return
-        if self._running:
+        if self._turn_running:
             self.notify("Agent is still running.", severity="warning")
             return
 
-        self._running = True
+        self._turn_running = True
+        self._last_reply_content = ""
+        self._seen_event_keys.clear()
         self.query_one(Input).disabled = True
         self._update_status("Running...")
         self._thread = threading.Thread(
@@ -180,10 +162,10 @@ class KesCodeTuiApp(App[None]):
         )
         self._thread.start()
 
-    def on_agent_event(self, message: AgentEventMessage) -> None:
+    def on_agent_event_message(self, message: AgentEventMessage) -> None:
         self._handle_event(message.event)
 
-    def on_approval_requested(
+    def on_approval_requested_message(
         self,
         message: ApprovalRequestedMessage,
     ) -> None:
@@ -223,14 +205,14 @@ class KesCodeTuiApp(App[None]):
         request: ApprovalRequest,
         gate: ApprovalGate,
     ) -> None:
-        self._post_message(ApprovalRequestedMessage(request, gate))
+        self._post_ui_message(ApprovalRequestedMessage(request, gate))
 
     def _post_event(self, event: dict[str, Any]) -> None:
-        self._post_message(AgentEventMessage(event))
+        self._post_ui_message(AgentEventMessage(event))
 
-    def _post_message(self, message: Message) -> None:
+    def _post_ui_message(self, message: Message) -> None:
         try:
-            self.call_from_thread(self.post_message, message)
+            self.post_message(message)
         except Exception:
             pass
 
@@ -245,9 +227,12 @@ class KesCodeTuiApp(App[None]):
         elif event_type == "intent_route":
             reason = str(event.get("reason") or "")
             suffix = f" ({reason})" if reason else ""
-            self._log(f"🧭 Intent: {event.get('route')}{suffix}")
+            self._log_once(
+                _event_key("intent", (event.get("route"), reason)),
+                f"🧭 Intent: {event.get('route')}{suffix}",
+            )
         elif event_type == "final_answer":
-            self._log(f"✅ {event.get('content') or ''}")
+            self._log_reply(event.get("content"), "✅")
         elif event_type == "error":
             self._log(f"❌ {event.get('message') or 'Unknown error'}")
         elif event_type == "turn_finished":
@@ -266,7 +251,7 @@ class KesCodeTuiApp(App[None]):
         elif event_type == "session_context":
             self._log(f"🧾 Session context ready (turn {event.get('turn')})")
         elif event_type == "assistant_turn":
-            self._log(f"🤖 {event.get('content') or ''}")
+            self._log_reply(event.get("content"), "🤖")
             self._update_status(f"turn {event.get('turn')} complete")
         elif event_type == "session_saved":
             self._update_status("Session saved")
@@ -278,25 +263,30 @@ class KesCodeTuiApp(App[None]):
             if not isinstance(update, dict):
                 continue
             if node == "planner":
-                self._update_plan(update)
                 plan_summary = update.get("plan_summary")
                 if plan_summary:
-                    self._log(f"📋 {plan_summary}")
+                    self._log_once(
+                        _event_key("plan", plan_summary),
+                        f"📋 {plan_summary}",
+                    )
             elif node == "intent_router":
                 route = update.get("intent_route")
                 reason = str(update.get("intent_reason") or "")
                 suffix = f" ({reason})" if reason else ""
-                self._log(f"🧭 Intent: {route}{suffix}")
+                self._log_once(
+                    _event_key("intent", (route, reason)),
+                    f"🧭 Intent: {route}{suffix}",
+                )
             elif node == "chat_responder":
                 content = update.get("final_answer") or update.get(
                     "chat_response"
                 )
                 if content:
-                    self._log(f"🤖 {content}")
+                    self._log_reply(content, "🤖")
             elif node == "final":
                 content = update.get("final_answer")
                 if content:
-                    self._log(f"✅ {content}")
+                    self._log_reply(content, "✅")
             elif node == "verifier":
                 passed = update.get("passed")
                 if passed is True:
@@ -313,52 +303,77 @@ class KesCodeTuiApp(App[None]):
     def _handle_custom_event(self, event: dict[str, Any]) -> None:
         event_type = event.get("type")
         if event_type == "tool_call":
-            self._log(self._tool_call_text(event))
+            self._log_once(
+                _event_key("tool_call", (event.get("name"), event.get("args"))),
+                self._tool_call_text(event),
+            )
         elif event_type == "tool_result":
-            self._log(self._tool_result_text(event))
+            self._log_once(
+                _event_key("tool_result", (event.get("name"), event.get("result"))),
+                self._tool_result_text(event),
+            )
         elif event_type == "handoff":
-            self._log(
+            self._log_once(
+                _event_key(
+                    "handoff",
+                    (
+                        event.get("from"),
+                        event.get("to"),
+                        event.get("instruction"),
+                    ),
+                ),
                 "🔄 Handoff: "
                 f"{event.get('from')} → {event.get('to')}: "
-                f"{event.get('instruction') or ''}"
+                f"{event.get('instruction') or ''}",
             )
         elif event_type == "checkpoint_saved":
             self._log(f"💾 Checkpoint saved: {event.get('checkpoint_id')}")
         elif event_type == "ai_message":
             content = str(event.get("content") or "").strip()
             if content:
-                self._log(f"💭 {content}")
+                self._log_once(
+                    _event_key("ai_message", content),
+                    f"💭 {content}",
+                )
         elif event_type == "search_results":
-            self._log(
+            self._log_once(
+                _event_key("search_results", event.get("query")),
                 f"🔍 WebSearchTool: {event.get('query') or ''} "
-                f"({len(event.get('results') or [])} results)"
+                f"({len(event.get('results') or [])} results)",
             )
         elif event_type == "final_answer":
-            self._log(f"✅ {event.get('content') or ''}")
+            self._log_reply(event.get("content"), "✅")
         elif event_type == "plan_snapshot":
-            self._update_plan(event)
+            plan_summary = str(event.get("plan_summary") or "")
+            if plan_summary:
+                self._log_once(
+                    _event_key("plan", plan_summary),
+                    f"📋 {plan_summary}",
+                )
         elif event_type == "memory":
             pass
         else:
             self._log(f"• {event_type}")
 
-    def _update_plan(self, update: dict[str, Any]) -> None:
-        plan_summary = str(update.get("plan_summary") or "")
-        todos = update.get("todos") or []
-        lines = [f"[Plan] {plan_summary}" if plan_summary else "[Plan]"]
-        for todo in todos:
-            if not isinstance(todo, dict):
-                continue
-            todo_id = todo.get("id") or f"todo-{lines.__len__()}"
-            status = str(todo.get("status") or "pending")
-            icon = _STATUS_ICONS.get(status, "⬜")
-            lines.append(f"  {todo_id} {icon} {todo.get('content') or ''}")
-        self.query_one("#plan-panel", Static).update("\n".join(lines))
-
     def _finish_turn(self) -> None:
-        self._running = False
-        self.query_one(Input).disabled = False
+        self._turn_running = False
+        prompt = self.query_one("#prompt", Input)
+        prompt.disabled = False
+        prompt.focus()
         self._update_status("Ready")
+
+    def _log_reply(self, content: Any, prefix: str) -> None:
+        text = str(content or "").strip()
+        if not text or text == self._last_reply_content:
+            return
+        self._last_reply_content = text
+        self._log(f"{prefix} {text}")
+
+    def _log_once(self, key: str, content: str) -> None:
+        if key in self._seen_event_keys:
+            return
+        self._seen_event_keys.add(key)
+        self._log(content)
 
     def _animate_logo(self) -> None:
         self._logo_step += 1
@@ -424,6 +439,19 @@ def _one_line(value: Any, limit: int = 160) -> str:
     if len(text) <= limit:
         return text
     return text[: limit - 3] + "..."
+
+
+def _event_key(prefix: str, value: Any) -> str:
+    try:
+        payload = json.dumps(
+            value,
+            sort_keys=True,
+            ensure_ascii=False,
+            default=str,
+        )
+    except (TypeError, ValueError):
+        payload = str(value)
+    return f"{prefix}:{payload}"
 
 
 __all__ = [

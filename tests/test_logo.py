@@ -13,8 +13,8 @@ def test_build_logo_contains_expected_lines() -> None:
     logo = build_logo()
 
     assert "🐾 KesCode" in logo.plain
-    assert "Stage 6 · MultiAgent + Context/Harness" in logo.plain
-    assert len(logo.plain.splitlines()) == 4
+    assert "Stage 6 · MultiAgent + Context/Harness" not in logo.plain
+    assert len(logo.plain.splitlines()) == 1
 
 
 def test_build_logo_cycles_colors() -> None:
@@ -44,7 +44,7 @@ def test_render_logo_without_animation_prints_art() -> None:
 
     output = console.export_text()
     assert "KesCode" in output
-    assert "Stage 6 · MultiAgent + Context/Harness" in output
+    assert "Stage 6 · MultiAgent + Context/Harness" not in output
 
 
 def test_render_logo_animation_leaves_final_art() -> None:
