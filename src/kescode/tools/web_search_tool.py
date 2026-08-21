@@ -26,7 +26,7 @@ class WebSearchTool:
     args_schema = WebSearchArgs
 
     def search(self, query: str) -> dict[str, Any]:
-        api_key = os.getenv("TAVILY_API_KEY", "tvly-REPLACED")
+        api_key = os.getenv("TAVILY_API_KEY")
         if not api_key:
             return {"ok": False, "error": "missing TAVILY_API_KEY"}
 

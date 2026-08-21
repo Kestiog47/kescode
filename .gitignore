@@ -11,7 +11,9 @@ wheels/
 .venv
 
 # Runtime session data
-.kescode/session/
+.kescode
 
 # Environment files
 .env
+.env.*
+!.env.example
